@@ -84,7 +84,7 @@ _controller = QuillController(
 
 For web development, use `flutter config --enable-web` for flutter or use [ReactQuill] for React.
 
-It is required to provide `EmbedBuilder`, e.g. [defaultEmbedBuildersWeb](https://github.com/singerdmx/flutter-quill/blob/master/example/lib/universal_ui/universal_ui.dart#L95).
+It is required to provide `EmbedBuilder`, e.g. [defaultEmbedBuildersWeb](https://github.com/singerdmx/flutter-quill/blob/master/example/lib/universal_ui/universal_ui.dart#L99).
 Also it is required to provide `webImagePickImpl`, e.g. [Sample Page](https://github.com/singerdmx/flutter-quill/blob/master/example/lib/pages/home_page.dart#L237).
 
 ## Desktop
@@ -156,7 +156,7 @@ QuillToolbar.basic(
 
 ## Embed Blocks
 
-As of version 6.0, embed blocks are not provided by default as part of this package. Instead, this packet provides an interface to all the user to provide there own implementations for embed blocks. Implementations for image, video and forumal embed blocks is proved in a separate package [`flutter_quill_extensions`](https://pub.dev/packages/flutter_quill_extensions).
+As of version 6.0, embed blocks are not provided by default as part of this package. Instead, this package provides an interface to all the user to provide there own implementations for embed blocks. Implementations for image, video and formula embed blocks is proved in a separate package [`flutter_quill_extensions`](https://pub.dev/packages/flutter_quill_extensions).
 
 Provide a list of embed 
 
