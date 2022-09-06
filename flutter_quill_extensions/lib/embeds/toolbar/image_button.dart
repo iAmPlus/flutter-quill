@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../models/documents/nodes/embeddable.dart';
-import '../../models/themes/quill_dialog_theme.dart';
-import '../../models/themes/quill_icon_theme.dart';
-import '../controller.dart';
-import '../toolbar.dart';
+import '../embed_types.dart';
+import 'image_video_utils.dart';
 
 class ImageButton extends StatelessWidget {
   const ImageButton({
@@ -55,6 +53,7 @@ class ImageButton extends StatelessWidget {
       hoverElevation: 0,
       size: iconSize * 1.77,
       fillColor: iconFillColor,
+      borderRadius: iconTheme?.borderRadius ?? 2,
       onPressed: () => _onPressedHandler(context),
     );
   }

@@ -1,12 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../flutter_quill.dart';
 import 'text_selection.dart';
 
-typedef EmbedBuilder = Widget Function(BuildContext context,
-    QuillController controller, Embed node, bool readOnly);
+typedef EmbedsBuilder = Widget Function(
+  BuildContext context,
+  QuillController controller,
+  Embed node,
+  bool readOnly,
+);
 
 typedef CustomStyleBuilder = TextStyle Function(Attribute attribute);
 
@@ -252,9 +257,17 @@ class EditorTextSelectionGestureDetectorBuilder {
   void onDoubleTapDown(TapDownDetails details) {
     if (delegate.selectionEnabled) {
       renderEditor!.selectWord(SelectionChangedCause.tap);
-      if (shouldShowSelectionToolbar) {
-        editor!.showToolbar();
-      }
+      // allow the selection to get updated before trying to bring up
+      // toolbars.
+      //
+      // if double tap happens on an editor that doesn't
+      // have focus, selection hasn't been set when the toolbars
+      // get added
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (shouldShowSelectionToolbar) {
+          editor!.showToolbar();
+        }
+      });
     }
   }
 

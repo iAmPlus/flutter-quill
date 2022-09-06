@@ -11,6 +11,8 @@ import 'package:tuple/tuple.dart';
 
 import '../models/documents/document.dart';
 import '../models/documents/nodes/container.dart' as container_node;
+import '../models/documents/nodes/embeddable.dart';
+import '../models/documents/nodes/leaf.dart';
 import '../models/documents/style.dart';
 import '../utils/platform.dart';
 import 'box.dart';
@@ -18,7 +20,7 @@ import 'controller.dart';
 import 'cursor.dart';
 import 'default_styles.dart';
 import 'delegate.dart';
-import 'embeds/default_embed_builder.dart';
+import 'embeds.dart';
 import 'float_cursor.dart';
 import 'link.dart';
 import 'raw_editor.dart';
@@ -167,11 +169,12 @@ class QuillEditor extends StatefulWidget {
       this.onSingleLongTapStart,
       this.onSingleLongTapMoveUpdate,
       this.onSingleLongTapEnd,
-      this.embedBuilder = defaultEmbedBuilder,
+      this.embedBuilders,
       this.linkActionPickerDelegate = defaultLinkActionPickerDelegate,
       this.customStyleBuilder,
       this.locale,
       this.floatingCursorDisabled = false,
+      this.textSelectionControls,
       Key? key})
       : super(key: key);
 
@@ -179,6 +182,11 @@ class QuillEditor extends StatefulWidget {
     required QuillController controller,
     required bool readOnly,
     Brightness? keyboardAppearance,
+    Iterable<EmbedBuilder>? embedBuilders,
+
+    /// The locale to use for the editor toolbar, defaults to system locale
+    /// More at https://github.com/singerdmx/flutter-quill#translation
+    Locale? locale,
   }) {
     return QuillEditor(
       controller: controller,
@@ -190,6 +198,8 @@ class QuillEditor extends StatefulWidget {
       expands: false,
       padding: EdgeInsets.zero,
       keyboardAppearance: keyboardAppearance ?? Brightness.light,
+      locale: locale,
+      embedBuilders: embedBuilders,
     );
   }
 
@@ -338,7 +348,7 @@ class QuillEditor extends StatefulWidget {
           LongPressEndDetails details, TextPosition Function(Offset offset))?
       onSingleLongTapEnd;
 
-  final EmbedBuilder embedBuilder;
+  final Iterable<EmbedBuilder>? embedBuilders;
   final CustomStyleBuilder? customStyleBuilder;
 
   /// The locale to use for the editor toolbar, defaults to system locale
@@ -361,6 +371,11 @@ class QuillEditor extends StatefulWidget {
   final LinkActionPickerDelegate linkActionPickerDelegate;
 
   final bool floatingCursorDisabled;
+
+  /// allows to create a custom textSelectionControls,
+  /// if this is null a default textSelectionControls based on the app's theme
+  /// will be used
+  final TextSelectionControls? textSelectionControls;
 
   @override
   QuillEditorState createState() => QuillEditorState();
@@ -448,22 +463,53 @@ class QuillEditorState extends State<QuillEditor>
       expands: widget.expands,
       autoFocus: widget.autoFocus,
       selectionColor: selectionColor,
-      selectionCtrls: textSelectionControls,
+      selectionCtrls: widget.textSelectionControls ?? textSelectionControls,
       keyboardAppearance: widget.keyboardAppearance,
       enableInteractiveSelection: widget.enableInteractiveSelection,
       scrollPhysics: widget.scrollPhysics,
-      embedBuilder: widget.embedBuilder,
+      embedBuilder: (
+        context,
+        controller,
+        node,
+        readOnly,
+      ) {
+        final builders = widget.embedBuilders;
+
+        if (builders != null) {
+          var _node = node;
+
+          // Creates correct node for custom embed
+          if (node.value.type == BlockEmbed.customType) {
+            _node = Embed(CustomBlockEmbed.fromJsonString(node.value.data));
+          }
+
+          for (final builder in builders) {
+            if (builder.key == _node.value.type) {
+              return builder.build(context, controller, _node, readOnly);
+            }
+          }
+        }
+
+        throw UnimplementedError(
+          'Embeddable type "${node.value.type}" is not supported by supplied '
+          'embed builders. You must pass your own builder function to '
+          'embedBuilders property of QuillEditor or QuillField widgets.',
+        );
+      },
       linkActionPickerDelegate: widget.linkActionPickerDelegate,
       customStyleBuilder: widget.customStyleBuilder,
       floatingCursorDisabled: widget.floatingCursorDisabled,
     );
 
     final editor = I18n(
-        initialLocale: widget.locale,
-        child: _selectionGestureDetectorBuilder.build(
-          behavior: HitTestBehavior.translucent,
-          child: child,
-        ));
+      initialLocale: widget.locale,
+      child: selectionEnabled
+          ? _selectionGestureDetectorBuilder.build(
+              behavior: HitTestBehavior.translucent,
+              child: child,
+            )
+          : child,
+    );
 
     if (kIsWeb) {
       // Intercept RawKeyEvent on Web to prevent it from propagating to parents
@@ -621,6 +667,9 @@ class _QuillEditorSelectionGestureDetectorBuilder
               renderEditor!
                 ..selectWordEdge(SelectionChangedCause.tap)
                 ..onSelectionCompleted();
+              break;
+            case PointerDeviceKind.trackpad:
+              // TODO: Handle this case.
               break;
           }
         } else {
@@ -1562,8 +1611,7 @@ class RenderEditor extends RenderEditableContainerBox
   }
 }
 
-class QuillVerticalCaretMovementRun
-    extends BidirectionalIterator<TextPosition> {
+class QuillVerticalCaretMovementRun extends Iterator<TextPosition> {
   QuillVerticalCaretMovementRun._(
     this._editor,
     this._currentTextPosition,
@@ -1584,7 +1632,6 @@ class QuillVerticalCaretMovementRun
     return true;
   }
 
-  @override
   bool movePrevious() {
     _currentTextPosition = _editor.getTextPositionAbove(_currentTextPosition);
     return true;

@@ -17,6 +17,7 @@ import '../models/documents/nodes/line.dart';
 import '../models/documents/nodes/node.dart';
 import '../models/documents/style.dart';
 import '../utils/color.dart';
+import '../utils/font.dart';
 import '../utils/platform.dart';
 import 'box.dart';
 import 'controller.dart';
@@ -44,7 +45,7 @@ class TextLine extends StatefulWidget {
 
   final Line line;
   final TextDirection? textDirection;
-  final EmbedBuilder embedBuilder;
+  final EmbedsBuilder embedBuilder;
   final DefaultStyles styles;
   final bool readOnly;
   final QuillController controller;
@@ -134,8 +135,14 @@ class _TextLineState extends State<TextLine> {
     if (widget.line.hasEmbed && widget.line.childCount == 1) {
       // For video, it is always single child
       final embed = widget.line.children.single as Embed;
-      return EmbedProxy(widget.embedBuilder(
-          context, widget.controller, embed, widget.readOnly));
+      return EmbedProxy(
+        widget.embedBuilder(
+          context,
+          widget.controller,
+          embed,
+          widget.readOnly,
+        ),
+      );
     }
     final textSpan = _getTextSpanForWholeLine(context);
     final strutStyle = StrutStyle.fromTextStyle(textSpan.style!);
@@ -175,8 +182,15 @@ class _TextLineState extends State<TextLine> {
         }
         // Here it should be image
         final embed = WidgetSpan(
-            child: EmbedProxy(widget.embedBuilder(
-                context, widget.controller, child, widget.readOnly)));
+          child: EmbedProxy(
+            widget.embedBuilder(
+              context,
+              widget.controller,
+              child,
+              widget.readOnly,
+            ),
+          ),
+        );
         textSpanChildren.add(embed);
         continue;
       }
@@ -307,7 +321,7 @@ class _TextLineState extends State<TextLine> {
         if (k == Attribute.underline.key || k == Attribute.strikeThrough.key) {
           var textColor = defaultStyles.color;
           if (color?.value is String) {
-            textColor = stringToColor(color?.value);
+            textColor = stringToColor(color?.value, textColor);
           }
           res = _merge(res.copyWith(decorationColor: textColor),
               s!.copyWith(decorationColor: textColor));
@@ -342,19 +356,7 @@ class _TextLineState extends State<TextLine> {
           res = res.merge(defaultStyles.sizeHuge);
           break;
         default:
-          double? fontSize;
-          if (size.value is double) {
-            fontSize = size.value;
-          } else if (size.value is int) {
-            fontSize = size.value.toDouble();
-          } else if (size.value is String) {
-            fontSize = double.tryParse(size.value);
-          }
-          if (fontSize != null) {
-            res = res.merge(TextStyle(fontSize: fontSize));
-          } else {
-            throw 'Invalid size ${size.value}';
-          }
+          res = res.merge(TextStyle(fontSize: getFontSize(size.value)));
       }
     }
 
@@ -394,7 +396,7 @@ class _TextLineState extends State<TextLine> {
   }
 
   Future<void> _launchUrl(String url) async {
-    await launch(url);
+    await launchUrl(Uri.parse(url));
   }
 
   void _tapNodeLink(Node node) {
