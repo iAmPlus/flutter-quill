@@ -17,9 +17,6 @@ dependencies:
   flutter_keyboard_visibility: ^5.2.0
   quiver: ^3.1.0
   tuple: ^2.0.0
-  url_launcher: ^6.0.2
-  pedantic: ^1.11.0
-  characters: ^1.1.0
   url_launcher: ^6.1.2
   pedantic: ^1.11.1
   characters: ^1.2.0
