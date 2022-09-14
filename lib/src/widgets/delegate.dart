@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../flutter_quill.dart';
+import '../utils/platform.dart';
 import 'text_selection.dart';
 
 typedef EmbedsBuilder = Widget Function(
@@ -111,6 +112,9 @@ class EditorTextSelectionGestureDetectorBuilder {
     // For backwards-compatibility, we treat a null kind the same as touch.
     final kind = details.kind;
     shouldShowSelectionToolbar = kind == null ||
+        kind ==
+            PointerDeviceKind
+                .mouse || // Enable word selection by mouse double tap
         kind == PointerDeviceKind.touch ||
         kind == PointerDeviceKind.stylus;
   }
@@ -175,6 +179,15 @@ class EditorTextSelectionGestureDetectorBuilder {
   void onSingleTapUp(TapUpDetails details) {
     if (delegate.selectionEnabled) {
       renderEditor!.selectWordEdge(SelectionChangedCause.tap);
+    }
+  }
+
+  /// onSingleTapUp for mouse right click
+  @protected
+  void onSecondarySingleTapUp(TapUpDetails details) {
+    // added to show toolbar by right click
+    if (shouldShowSelectionToolbar) {
+      editor!.showToolbar();
     }
   }
 
@@ -311,6 +324,12 @@ class EditorTextSelectionGestureDetectorBuilder {
   @protected
   void onDragSelectionEnd(DragEndDetails details) {
     renderEditor!.handleDragEnd(details);
+    if (isDesktop() &&
+        delegate.selectionEnabled &&
+        shouldShowSelectionToolbar) {
+      // added to show selection copy/paste toolbar after drag to select
+      editor!.showToolbar();
+    }
   }
 
   /// Returns a [EditorTextSelectionGestureDetector] configured with
@@ -330,6 +349,7 @@ class EditorTextSelectionGestureDetectorBuilder {
       onSingleLongTapMoveUpdate: onSingleLongTapMoveUpdate,
       onSingleLongTapEnd: onSingleLongTapEnd,
       onDoubleTapDown: onDoubleTapDown,
+      onSecondarySingleTapUp: onSecondarySingleTapUp,
       onDragSelectionStart: onDragSelectionStart,
       onDragSelectionUpdate: onDragSelectionUpdate,
       onDragSelectionEnd: onDragSelectionEnd,
